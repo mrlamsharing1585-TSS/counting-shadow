@@ -23,19 +23,19 @@ jobs:
       PLAY_SA: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
 
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
 
       - run: npm ci
 
@@ -61,7 +61,38 @@ jobs:
             echo "::warning::Chưa có ANDROID_KEYSTORE_BASE64 — sẽ ra bản CHƯA KÝ, không nộp lên Play được."
             exit 0
           fi
-          echo "$KEYSTORE_B64" | base64 -d > android/upload-key.jks
+          # Chuỗi dán tay hay dính rác: xuống dòng kiểu Windows, khoảng trắng,
+          # hoặc dòng "-----BEGIN..." nếu lỡ dùng certutil. Phải dọn sạch trước
+          # khi giải mã — `base64 -d` gặp một ký tự lạ là hỏng cả chuỗi.
+          printf '%s' "$KEYSTORE_B64" | grep -v -- '-----' | tr -d '\r\n \t' > ks.b64
+          echo "Chuỗi sau khi dọn: $(wc -c < ks.b64) ký tự"
+
+          if ! base64 -d ks.b64 > android/upload-key.jks 2> b64.err; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 không giải mã được. $(cat b64.err)"
+            echo 'Tạo lại chuỗi bằng đúng lệnh này rồi dán lại secret:'
+            echo '  [Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\keys-lamlestudio\upload-key.jks")) | Set-Clipboard'
+            exit 1
+          fi
+
+          size=$(stat -c%s android/upload-key.jks)
+          magic=$(head -c 2 android/upload-key.jks | od -An -tx1 | tr -d ' \n')
+          echo "Tệp khoá: $size bytes, 2 byte đầu: $magic"
+          if [ "$size" -lt 1000 ] || [ "$magic" != "3082" ]; then
+            echo "::error::Giải mã ra tệp không phải keystore (cần từ 1000 bytes trở lên, 2 byte đầu phải là 3082)."
+            echo "Nhiều khả năng chuỗi bị dán thiếu. Chuỗi đúng dài khoảng 5836 ký tự."
+            exit 1
+          fi
+
+          # Thử mở khoá ngay tại đây. Sai mật khẩu hay sai alias thì báo rõ ràng,
+          # thay vì để Gradle chết ở bước ký với thông báo khó hiểu.
+          if ! keytool -list -keystore android/upload-key.jks \
+               -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" > /dev/null 2> kt.err; then
+            echo "::error::Mở được tệp nhưng không dùng được: $(head -3 kt.err)"
+            echo "Kiểm tra lại ANDROID_STORE_PASSWORD và ANDROID_KEY_ALIAS (alias phải đúng là: upload)."
+            exit 1
+          fi
+          echo "Khoá hợp lệ, mật khẩu và alias khớp."
+
           cat > android/keystore.properties <<EOF
           storeFile=upload-key.jks
           storePassword=$STORE_PASSWORD
@@ -73,13 +104,24 @@ jobs:
         working-directory: android
         run: ./gradlew bundleRelease assembleRelease --no-daemon
 
+      # Bản chưa ký vẫn build trót lọt và vẫn tải về được, chỉ tới lúc nộp lên
+      # Play mới bị chặn. Kiểm ngay tại đây cho khỏi mất công.
+      - name: Xác nhận bản dựng đã được ký
+        run: |
+          AAB=android/app/build/outputs/bundle/release/app-release.aab
+          if unzip -l "$AAB" | grep -qE 'META-INF/.*\.(RSA|EC|DSA)'; then
+            echo "AAB đã được ký."
+          else
+            echo "::warning::AAB CHƯA ĐƯỢC KÝ — Play sẽ từ chối. Kiểm tra lại 4 secret."
+          fi
+
       # Số hiệu bản dựng lấy theo số thứ tự lần chạy để mỗi lần nộp đều tăng,
       # khỏi phải sửa tay versionCode trong build.gradle.
       - name: Đặt tên tệp
         id: name
         run: echo "tag=${GITHUB_REF_NAME//\//-}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: android-${{ steps.name.outputs.tag }}
           path: |
