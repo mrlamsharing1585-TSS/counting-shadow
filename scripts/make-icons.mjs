@@ -76,24 +76,31 @@ const svg = (size, body) =>
 const background = `<rect width="1024" height="1024" fill="url(#bg)"/>
   <circle cx="512" cy="512" r="470" fill="url(#glow)"/>`;
 
+/**
+ * Ảnh nào phủ kín nền thì phải bỏ hẳn kênh alpha:
+ *  - Apple **từ chối** icon 1024 còn kênh alpha ngay lúc tải lên.
+ *  - Google Play yêu cầu ảnh bìa là PNG 24-bit, không alpha.
+ * Riêng `icon-foreground` là lớp trên của adaptive icon nên buộc phải trong suốt.
+ */
+const OPAQUE_BG = '#150f27';
+
 const files = [
   // Nền và lớp trên của adaptive icon Android. Android xén tròn/vuông tuỳ máy
   // nên phần quan trọng phải nằm gọn trong vòng an toàn ~66% ở giữa.
-  ['icon-background.png', 1024, background],
-  ['icon-foreground.png', 1024, head(232)],
+  ['icon-background.png', 1024, background, true],
+  ['icon-foreground.png', 1024, head(232), false],
   // Icon phẳng cho iOS và cửa hàng.
-  ['icon-only.png', 1024, background + head(300)],
+  ['icon-only.png', 1024, background + head(300), true],
   // Splash: Android 12+ chỉ hiện phần giữa nên để hình nhỏ lại.
-  ['splash.png', 2732, background + head(150)],
-  ['splash-dark.png', 2732, background + head(150)],
+  ['splash.png', 2732, background + head(150), true],
+  ['splash-dark.png', 2732, background + head(150), true],
 ];
 
-for (const [name, size, body] of files) {
-  await sharp(svg(size, body), { density: 400 })
-    .resize(size, size)
-    .png()
-    .toFile(join(OUT, name));
-  console.log(`${name}  ${size}x${size}`);
+for (const [name, size, body, opaque] of files) {
+  let img = sharp(svg(size, body), { density: 400 }).resize(size, size);
+  if (opaque) img = img.flatten({ background: OPAQUE_BG });
+  await img.png().toFile(join(OUT, name));
+  console.log(`${name}  ${size}x${size}${opaque ? '  (không alpha)' : '  (có alpha)'}`);
 }
 
 /* --------------------------------------------- ảnh riêng cho trang cửa hàng */
@@ -104,9 +111,10 @@ mkdirSync(STORE, { recursive: true });
 // Google Play bắt buộc icon 512×512.
 await sharp(svg(1024, background + head(300)), { density: 400 })
   .resize(512, 512)
+  .flatten({ background: OPAQUE_BG })
   .png()
   .toFile(join(STORE, 'play-icon-512.png'));
-console.log('store/play-icon-512.png  512x512');
+console.log('store/play-icon-512.png  512x512  (không alpha)');
 
 // Google Play bắt buộc ảnh bìa 1024×500. Không dùng chữ để khỏi phụ thuộc font
 // của máy — chữ sẽ do trang cửa hàng tự hiển thị bên dưới.
@@ -122,5 +130,9 @@ const featureSvg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="1
     <circle cx="835" cy="365" r="10" fill="#5ecbff"/>
   </g>
 </svg>`);
-await sharp(featureSvg, { density: 400 }).resize(1024, 500).png().toFile(join(STORE, 'play-feature-1024x500.png'));
-console.log('store/play-feature-1024x500.png  1024x500');
+await sharp(featureSvg, { density: 400 })
+  .resize(1024, 500)
+  .flatten({ background: OPAQUE_BG })
+  .png()
+  .toFile(join(STORE, 'play-feature-1024x500.png'));
+console.log('store/play-feature-1024x500.png  1024x500  (không alpha)');

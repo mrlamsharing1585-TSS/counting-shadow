@@ -34,9 +34,25 @@ Ba quy trình trong `.github/workflows/` giải quyết luôn cả hai chỗ đa
 Repo công khai thì cả ba đều **miễn phí**. Repo riêng tư thì phút chạy trên macOS tính gấp 10 lần,
 một lần build iOS khoảng 8–12 phút.
 
+### Kiểm tra ảnh và chữ trước khi nộp
+
+```bash
+npm run check:store
+```
+
+Đối chiếu đúng những gì cửa hàng soi: kích thước ảnh, **kênh alpha** (Apple từ chối icon 1024 còn
+alpha; Play bắt ảnh bìa phải là PNG 24-bit), số lượng và dung lượng ảnh chụp, và số ký tự của từng
+đoạn chữ. Chạy lại mỗi khi sửa ảnh hoặc sửa nội dung trong `store/listing.md`.
+
 ### Các bước
 
 1. Tạo repo trên GitHub rồi đẩy dự án lên (dự án đã có sẵn commit đầu tiên).
+   Thay `<tên-bạn>` bằng tên tài khoản GitHub thật:
+
+   ```bash
+   git remote add origin https://github.com/<tên-bạn>/counting-shadow.git
+   git push -u origin main
+   ```
 2. Vào **Settings → Pages → Source: GitHub Actions**. Đẩy code lên là có ngay URL dạng
    `https://<tên-bạn>.github.io/<tên-repo>/privacy.html` — đây chính là URL chính sách quyền riêng
    tư mà hai cửa hàng bắt buộc phải có, và `…/play/` là bản chơi thử để gửi cho người khác.
