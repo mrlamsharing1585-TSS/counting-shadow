@@ -97,19 +97,46 @@ jobs:
 
           # Thử mở khoá ngay tại đây. Sai mật khẩu hay sai alias thì báo rõ ràng,
           # thay vì để Gradle chết ở bước ký với thông báo khó hiểu.
-          if ! keytool -list -keystore android/upload-key.jks \
-               -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" > /dev/null 2> kt.err; then
-            echo "::error::Mở được tệp nhưng không dùng được: $(head -3 kt.err)"
-            echo "Kiểm tra lại ANDROID_STORE_PASSWORD và ANDROID_KEY_ALIAS (alias phải đúng là: upload)."
+          # keytool in lỗi ra stdout chứ không phải stderr, nên phải gộp cả hai
+          # luồng lại; tách ra là mất sạch thông báo.
+          trim() { printf '%s' "$1" | tr -d '\r\n' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'; }
+
+          PW_OK=""
+          for variant in nguyen_van da_cat_khoang_trang; do
+            if [ "$variant" = nguyen_van ]; then TRY="$STORE_PASSWORD"; else TRY="$(trim "$STORE_PASSWORD")"; fi
+            if keytool -list -keystore android/upload-key.jks -storepass "$TRY" > kt.out 2>&1; then
+              PW_OK="$TRY"
+              [ "$variant" = da_cat_khoang_trang ] && \
+                echo "::warning::Mật khẩu trong secret có thừa khoảng trắng hoặc ký tự xuống dòng ở đầu/cuối. Đã tự cắt bỏ, nhưng nên sửa lại secret cho sạch."
+              break
+            fi
+          done
+
+          if [ -z "$PW_OK" ]; then
+            echo "::error::Sai mật khẩu — không mở được kho khoá."
+            echo "keytool báo: $(grep -i 'error\|exception' kt.out | head -2)"
+            echo ""
+            echo "ANDROID_STORE_PASSWORD phải đúng bằng mật khẩu bạn gõ lúc chạy"
+            echo "scripts/tao-keystore.mjs. Script có in mật khẩu đó ra màn hình sau khi tạo."
+            echo "Nếu không nhớ nữa thì không đọc lại được — phải xoá tệp khoá cũ và tạo khoá mới."
             exit 1
           fi
-          echo "Khoá hợp lệ, mật khẩu và alias khớp."
+
+          ALIAS=$(trim "$KEY_ALIAS")
+          if ! grep -qi "^${ALIAS}," kt.out; then
+            echo "::error::Mở được kho khoá nhưng không có alias '${ALIAS}' bên trong."
+            echo "Các alias thật sự có trong kho:"
+            grep -iE 'PrivateKeyEntry|SecretKeyEntry|trustedCertEntry' kt.out | sed 's/^/  /'
+            echo "Sửa secret ANDROID_KEY_ALIAS cho khớp (script tạo khoá dùng alias: upload)."
+            exit 1
+          fi
+          echo "Khoá hợp lệ, mật khẩu và alias '${ALIAS}' đều khớp."
 
           cat > android/keystore.properties <<EOF
           storeFile=upload-key.jks
-          storePassword=$STORE_PASSWORD
-          keyAlias=$KEY_ALIAS
-          keyPassword=$KEY_PASSWORD
+          storePassword=$PW_OK
+          keyAlias=$ALIAS
+          keyPassword=$(trim "$KEY_PASSWORD")
           EOF
 
       - name: Build AAB và APK
