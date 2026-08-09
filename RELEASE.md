@@ -61,7 +61,7 @@ Chưa nạp keystore thì quy trình vẫn chạy, chỉ ra bản **chưa ký** 
 | --- | --- |
 | `IOS_CERTIFICATE_P12_BASE64` | Chứng chỉ Apple Distribution xuất ra `.p12` rồi base64 |
 | `IOS_CERTIFICATE_PASSWORD` | mật khẩu đặt lúc xuất `.p12` |
-| `IOS_PROVISIONING_PROFILE_BASE64` | Hồ sơ App Store cho `com.lamle.game123`, tải từ developer.apple.com rồi base64 |
+| `IOS_PROVISIONING_PROFILE_BASE64` | Hồ sơ App Store cho `com.lamlestudio.countingshadow`, tải từ developer.apple.com rồi base64 |
 | `IOS_PROVISIONING_PROFILE_NAME` | tên hồ sơ, đúng từng ký tự |
 | `IOS_TEAM_ID` | mã 10 ký tự ở góc trên phải trang Apple Developer |
 | `APPSTORE_ISSUER_ID`, `APPSTORE_KEY_ID`, `APPSTORE_PRIVATE_KEY` | App Store Connect → Users and Access → Integrations → App Store Connect API. Chỉ cần khi muốn nộp tự động |
@@ -178,7 +178,7 @@ npm run build && npx cap sync ios
 npx cap open ios
 ```
 
-Trong Xcode: chọn Team, đặt Bundle Identifier `com.lamle.game123`, chọn *Any iOS Device*, rồi
+Trong Xcode: chọn Team, đặt Bundle Identifier `com.lamlestudio.countingshadow`, chọn *Any iOS Device*, rồi
 *Product → Archive → Distribute App*.
 
 Cần chuẩn bị thêm:
@@ -204,7 +204,7 @@ ra được** — chuỗi này quá phổ biến. Nên đặt tên trên cửa h
 Google Play cho tối đa 30 ký tự, App Store 30 ký tự cho tên và 30 cho phụ đề. Tên hiển thị dưới icon
 trên máy vẫn giữ `123` cho gọn (`android/app/src/main/res/values/strings.xml`).
 
-`appId` là `com.lamle.game123` — **phát hành rồi thì vĩnh viễn không đổi được**. Muốn đổi phải nộp
+`appId` là `com.lamlestudio.countingshadow` — **phát hành rồi thì vĩnh viễn không đổi được**. Muốn đổi phải nộp
 một ứng dụng hoàn toàn mới, mất sạch lượt tải và đánh giá. Đổi bây giờ thì còn kịp.
 
 ---

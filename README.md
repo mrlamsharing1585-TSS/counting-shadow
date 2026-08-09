@@ -34,7 +34,7 @@ Mở `http://localhost:5173`. Trên máy tính có thể chơi bằng bàn phím
 ## Đóng gói thành app
 
 Cấu hình Capacitor đã có sẵn trong [capacitor.config.ts](capacitor.config.ts)
-(`appId: com.lamle.game123`).
+(`appId: com.lamlestudio.countingshadow`).
 
 Android — cần Android Studio + JDK 17 (máy đang có JDK 17):
 

@@ -9,10 +9,10 @@ if (keystorePropsFile.exists()) {
 }
 
 android {
-    namespace = "com.lamle.game123"
+    namespace = "com.lamlestudio.countingshadow"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.lamle.game123"
+        applicationId "com.lamlestudio.countingshadow"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // versionCode phải tăng nghiêm ngặt sau mỗi lần nộp lên Play.

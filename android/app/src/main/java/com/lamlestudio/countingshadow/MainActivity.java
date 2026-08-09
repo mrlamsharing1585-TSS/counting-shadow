@@ -1,4 +1,4 @@
-package com.lamle.game123;
+package com.lamlestudio.countingshadow;
 
 import com.getcapacitor.BridgeActivity;
 

@@ -3,9 +3,16 @@ import type { CapacitorConfig } from '@capacitor/cli';
 /**
  * `appId` là định danh vĩnh viễn trên cả hai cửa hàng — đã phát hành thì không
  * đổi được nữa, muốn đổi phải nộp một app hoàn toàn mới.
+ *
+ * Chọn `com.lamlestudio.countingshadow`:
+ *  - `lamlestudio` là không gian tên của nhà phát hành, dùng lại được cho mọi
+ *    game sau này (`com.lamlestudio.<game>`) thay vì mỗi game một kiểu.
+ *  - `countingshadow` bám theo tên quốc tế của game, không đổi kể cả khi tên
+ *    hiển thị trên cửa hàng thay đổi.
+ *  - Chuỗi này hiện ngay trên URL trang Play nên nó cũng là mặt tiền thương hiệu.
  */
 const config: CapacitorConfig = {
-  appId: 'com.lamle.game123',
+  appId: 'com.lamlestudio.countingshadow',
   appName: '123',
   webDir: 'dist',
 
