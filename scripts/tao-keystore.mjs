@@ -14,9 +14,17 @@
  * lệnh cũng như danh sách tiến trình.
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, renameSync } from 'node:fs';
 import { createInterface } from 'node:readline/promises';
 import { dirname, join } from 'node:path';
+
+/**
+ * `--auto` : tự sinh mật khẩu ngẫu nhiên rồi in ra, thay vì hỏi.
+ * `--moi`  : kho khoá cũ được đổi tên cất đi để tạo cái mới đè lên.
+ */
+const AUTO = process.argv.includes('--auto');
+const LAM_MOI = process.argv.includes('--moi');
 
 // KEYSTORE_OUT chỉ dùng để chạy thử; bình thường luôn ghi ra ngoài thư mục dự án.
 const OUT = process.env.KEYSTORE_OUT || 'D:/keys-lamlestudio/upload-key.jks';
@@ -41,10 +49,19 @@ if (!KEYTOOL) {
   process.exit(1);
 }
 
+if (existsSync(OUT) && LAM_MOI) {
+  // Không xoá — chỉ cất sang một bên. Xoá thẳng tệp khoá là việc không nên làm
+  // tự động, lỡ hoá ra nó vẫn dùng được thì không lấy lại nổi.
+  const cu = OUT.replace(/\.jks$/, `-cu-${new Date().toISOString().slice(0, 10)}.jks`);
+  renameSync(OUT, cu);
+  line(`Kho khoá cũ đã cất sang: ${cu}`);
+  line();
+}
+
 if (existsSync(OUT)) {
   line(`Đã có sẵn khoá tại ${OUT}`);
   line('Không tạo đè — mất khoá cũ là mất quyền cập nhật app.');
-  line('Muốn tạo lại thì đổi tên tệp cũ đi trước.');
+  line('Muốn tạo lại thì chạy kèm --moi, kho cũ sẽ được cất sang một bên.');
 } else {
   rule();
   line('TẠO KHOÁ KÝ CHO ANDROID');
@@ -53,13 +70,22 @@ if (existsSync(OUT)) {
   line('Nằm ngoài thư mục dự án, nên không có đường nào lọt lên GitHub.');
   line();
 
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  let pw = '';
-  while (pw.length < 6) {
-    pw = (await rl.question('Đặt mật khẩu cho khoá (tối thiểu 6 ký tự, gõ sẽ hiện chữ): ')).trim();
-    if (pw.length < 6) line(`  → mới ${pw.length} ký tự, cần ít nhất 6. Gõ lại.`);
+  let pw;
+  if (AUTO) {
+    // Bảng chữ cái không có ký tự dễ nhìn nhầm (0/O, 1/l/I) và không có ký tự
+    // đặc biệt, để dán vào ô secret không bao giờ vướng chuyện thoát ký tự.
+    const bang = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    pw = [...randomBytes(24)].map((b) => bang[b % bang.length]).join('');
+    line(`Mật khẩu sinh tự động (${pw.length} ký tự).`);
+  } else {
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    pw = '';
+    while (pw.length < 6) {
+      pw = (await rl.question('Đặt mật khẩu cho khoá (tối thiểu 6 ký tự, gõ sẽ hiện chữ): ')).trim();
+      if (pw.length < 6) line(`  → mới ${pw.length} ký tự, cần ít nhất 6. Gõ lại.`);
+    }
+    rl.close();
   }
-  rl.close();
 
   line();
   line('Đang tạo khoá…');
@@ -87,14 +113,26 @@ if (existsSync(OUT)) {
     process.exit(1);
   }
 
-  line('✓ Đã tạo xong.');
+  // Mở thử lại ngay bằng chính mật khẩu đó. Tạo xong mà không kiểm chứng thì
+  // vẫn có thể rơi vào đúng cảnh cũ: có tệp nhưng không ai mở được.
+  const kiem = spawnSync(KEYTOOL, ['-list', '-keystore', OUT, '-storepass', pw, '-alias', ALIAS], {
+    encoding: 'utf8',
+  });
+  if (kiem.status !== 0) {
+    line('✗ Tạo xong nhưng mở lại không được — dừng để khỏi lặp lại lỗi cũ.');
+    line(`${kiem.stdout ?? ''}${kiem.stderr ?? ''}`.trim());
+    process.exit(1);
+  }
+
+  line('✓ Đã tạo xong, và đã mở thử lại thành công bằng chính mật khẩu này.');
   line();
   rule();
   line('MẬT KHẨU CỦA BẠN — chép vào trình quản lý mật khẩu NGAY BÂY GIỜ:');
   line();
   line(`      ${pw}`);
   line();
-  line('Quên mật khẩu này là không ký được bản cập nhật nữa.');
+  line('Quên mật khẩu này là không ký được bản cập nhật Android nữa.');
+  line('(Không liên quan tới App Store — iOS ký bằng chứng chỉ của Apple, không dùng tệp này.)');
   rule();
 }
 
