@@ -109,7 +109,7 @@ line('NẠP 4 SECRET NÀY VÀO GITHUB');
 rule();
 line();
 line('Mở trang (phải đang đăng nhập tài khoản mrlamsharing1585-TSS):');
-line('  https://github.com/mrlamsharing1585-TSS/couting-shadow/settings/secrets/actions/new');
+line('  https://github.com/mrlamsharing1585-TSS/counting-shadow/settings/secrets/actions/new');
 line();
 line('Điền Name, điền Secret, bấm Add secret. Làm 4 lần:');
 line();
