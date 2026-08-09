@@ -141,7 +141,12 @@ jobs:
 
       - name: Build AAB và APK
         working-directory: android
-        run: ./gradlew bundleRelease assembleRelease --no-daemon
+        # Cờ thực thi của gradlew được đặt trong git (100755), nhưng đặt lại ở
+        # đây cho chắc — chỉ cần một lần `cap add android` chạy trên Windows là
+        # tệp mất cờ và cả bản dựng chết với "Permission denied".
+        run: |
+          chmod +x gradlew
+          ./gradlew bundleRelease assembleRelease --no-daemon
 
       # Bản chưa ký vẫn build trót lọt và vẫn tải về được, chỉ tới lúc nộp lên
       # Play mới bị chặn. Kiểm ngay tại đây cho khỏi mất công.
