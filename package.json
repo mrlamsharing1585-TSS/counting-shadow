@@ -11,6 +11,7 @@
     "sync": "npm run build && cap sync",
     "icons": "node scripts/make-icons.mjs && capacitor-assets generate",
     "check:store": "node scripts/check-store.mjs",
+    "keystore": "node scripts/tao-keystore.mjs",
     "android": "npm run build && cap sync android && cap open android",
     "android:bundle": "npm run build && cap sync android && cd android && gradlew.bat bundleRelease",
     "android:apk": "npm run build && cap sync android && cd android && gradlew.bat assembleRelease",
