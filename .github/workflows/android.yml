@@ -68,9 +68,21 @@ jobs:
           echo "Chuỗi sau khi dọn: $(wc -c < ks.b64) ký tự"
 
           if ! base64 -d ks.b64 > android/upload-key.jks 2> b64.err; then
+            # Soi xem chuỗi hỏng ở đâu. Chỉ in ra đặc điểm — độ dài, ký tự lạ,
+            # vị trí — chứ không in nội dung, để không lộ khoá ra log.
+            bad=$(tr -d 'A-Za-z0-9+/=' < ks.b64 | wc -c)
+            pos=$(grep -bo -m1 '[^A-Za-z0-9+/=]' ks.b64 | head -1 | cut -d: -f1)
             echo "::error::ANDROID_KEYSTORE_BASE64 không giải mã được. $(cat b64.err)"
-            echo 'Tạo lại chuỗi bằng đúng lệnh này rồi dán lại secret:'
-            echo '  [Convert]::ToBase64String([IO.File]::ReadAllBytes("D:\keys-lamlestudio\upload-key.jks")) | Set-Clipboard'
+            echo "Chẩn đoán: dài $(wc -c < ks.b64) ký tự (đúng phải khoảng 5836)."
+            echo "           có $bad ký tự nằm ngoài bảng chữ cái base64${pos:+, cái đầu tiên ở vị trí $pos}."
+            echo ""
+            echo "Gần như chắc chắn bạn đã dán nhầm nội dung tệp .jks (đoạn ký tự loạn xạ"
+            echo "nhìn thấy khi mở bằng Notepad) thay vì chuỗi base64."
+            echo ""
+            echo "Cách lấy đúng chuỗi: chạy trên máy bạn"
+            echo "  cd D:\\123"
+            echo "  node scripts/xuat-base64.mjs"
+            echo "rồi mở tệp ANDROID_KEYSTORE_BASE64.txt nó tạo ra, Ctrl+A Ctrl+C, dán lại secret."
             exit 1
           fi
 
