@@ -1,0 +1,22 @@
+node_modules/
+dist/
+site/
+.DS_Store
+*.local
+
+# Native project được commit để build tái lập được; chỉ loại phần sinh ra khi build.
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/app/release/
+ios/App/Pods/
+ios/App/build/
+
+# Khoá ký — mất là mất luôn quyền cập nhật app, tuyệt đối không commit.
+android/keystore.properties
+*.keystore
+*.jks
+*.mobileprovision
+*.p12
+*.p8

@@ -1,0 +1,38 @@
+{
+  "name": "game-123",
+  "version": "0.1.0",
+  "private": true,
+  "description": "123 - Bong Den dem 1 2 3. Mobile game (Canvas 2D + Capacitor).",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host",
+    "sync": "npm run build && cap sync",
+    "icons": "node scripts/make-icons.mjs && capacitor-assets generate",
+    "android": "npm run build && cap sync android && cap open android",
+    "android:bundle": "npm run build && cap sync android && cd android && gradlew.bat bundleRelease",
+    "android:apk": "npm run build && cap sync android && cd android && gradlew.bat assembleRelease",
+    "ios": "npm run build && cap sync ios && cap open ios",
+    "site": "npm run build && node scripts/make-site.mjs"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.0",
+    "@types/three": "^0.170.0",
+    "marked": "^18.0.9",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
+    "three": "^0.170.0"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true,
+    "sharp@0.32.6": true
+  }
+}

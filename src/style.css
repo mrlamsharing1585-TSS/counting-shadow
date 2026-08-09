@@ -1,0 +1,63 @@
+:root {
+  --bg: #1d1533;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  overscroll-behavior: none;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  font-family: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+}
+
+/* Khung hình 3D nằm dưới, lớp giao diện 2D chồng lên trên. */
+#stage,
+#hud {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+#hud {
+  pointer-events: none;
+}
+
+#rotate-hint {
+  display: none;
+  position: fixed;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  color: #f4eefc;
+  font-size: 18px;
+  letter-spacing: 2px;
+  z-index: 10;
+}
+
+/* Landscape trên điện thoại: game thiết kế cho màn hình dọc */
+@media (orientation: landscape) and (max-height: 520px) {
+  #rotate-hint {
+    display: flex;
+  }
+}

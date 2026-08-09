@@ -1,0 +1,97 @@
+name: Android
+
+# Chạy tay từ tab Actions, hoặc tự chạy khi đẩy một tag dạng v1.0.0.
+on:
+  workflow_dispatch:
+    inputs:
+      track:
+        description: 'Kênh nộp lên Play (bỏ trống = chỉ build, không nộp)'
+        required: false
+        default: ''
+        type: choice
+        options: ['', internal, alpha, beta, production]
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - run: npm ci
+
+      - name: Dựng bản web và đồng bộ sang Android
+        run: |
+          npm run build
+          npx cap sync android
+
+      # gradle.properties có trỏ org.gradle.java.home vào JDK trên máy Windows
+      # của tác giả. Trên máy chủ Linux đường dẫn đó không tồn tại nên phải bỏ đi,
+      # để Gradle dùng JDK do setup-java cài.
+      - name: Bỏ đường dẫn JDK riêng của máy tác giả
+        run: sed -i '/^org\.gradle\.java\.home=/d' android/gradle.properties
+
+      - name: Ghi khoá ký
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::warning::Chưa có ANDROID_KEYSTORE_BASE64 — sẽ ra bản CHƯA KÝ, không nộp lên Play được."
+            exit 0
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > android/upload-key.jks
+          cat > android/keystore.properties <<EOF
+          storeFile=upload-key.jks
+          storePassword=$STORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+
+      - name: Build AAB và APK
+        working-directory: android
+        run: ./gradlew bundleRelease assembleRelease --no-daemon
+
+      # Số hiệu bản dựng lấy theo số thứ tự lần chạy để mỗi lần nộp đều tăng,
+      # khỏi phải sửa tay versionCode trong build.gradle.
+      - name: Đặt tên tệp
+        id: name
+        run: echo "tag=${GITHUB_REF_NAME//\//-}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-${{ steps.name.outputs.tag }}
+          path: |
+            android/app/build/outputs/bundle/release/*.aab
+            android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      # Chỉ nộp khi bạn chọn kênh và đã nạp khoá tài khoản dịch vụ.
+      - name: Nộp lên Google Play
+        if: ${{ inputs.track != '' && env.SERVICE_ACCOUNT != '' }}
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.lamle.game123
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          track: ${{ inputs.track }}
+          status: ${{ inputs.track == 'production' && 'draft' || 'completed' }}
