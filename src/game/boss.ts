@@ -45,6 +45,15 @@ export class Boss {
     return this.state === 'watching';
   }
 
+  /**
+   * Đã quay hẳn mặt lại chưa. Chỉ lúc này nó mới bắt được người chơi — trạng
+   * thái `watching` bắt đầu ngay khi đầu mới chớm xoay, chết ở thời điểm đó thì
+   * người chơi nhìn vào màn hình vẫn thấy nó đang quay lưng.
+   */
+  get isStaring(): boolean {
+    return this.state === 'watching' && this.turn >= CFG.boss.lethalTurn;
+  }
+
   reset(): void {
     this.turn = 0;
     this.enterCounting(0);

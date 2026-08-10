@@ -104,7 +104,11 @@ export class Game {
     switch (this.phase) {
       case 'menu':
       case 'gameover':
+        // deathT phải chạy tiếp cả ở màn thua, nếu không nó đứng yên ngay dưới
+        // mốc cho phép chạm lại và người chơi kẹt luôn ở màn hình đó.
+        if (this.phase === 'gameover') this.deathT += dt;
         if (actions.some((a) => a.kind === 'confirm')) {
+          // Chặn cú chạm trong nửa giây đầu để không lỡ tay bấm ngay lúc chết.
           if (this.phase === 'gameover' && this.deathT < DEATH_ANIM + 0.5) break;
           this.start();
         }
@@ -125,7 +129,8 @@ export class Game {
     this.player.holding = holding;
     for (const action of actions) {
       if (action.kind !== 'lane') continue;
-      const result = this.player.laneChange(action.dir);
+      const dir = (CFG.player.invertSwipe ? -action.dir : action.dir) as -1 | 1;
+      const result = this.player.laneChange(dir);
       if (result === 'blocked') this.effects.addShake(4);
       else if (result === 'ok') this.audio.hop();
     }
@@ -134,8 +139,9 @@ export class Game {
     this.enterCells();
     if (this.phase !== 'playing') return;
 
-    // Quản trò nhìn thẳng mà còn nhúc nhích là dính sét.
-    if (this.boss.isWatching && this.player.moving && this.grace <= 0) {
+    // Quay hẳn mặt lại mà còn nhúc nhích là dính sét. Dùng `isStaring` chứ không
+    // phải `isWatching`: cái sau đúng ngay từ lúc đầu mới chớm xoay.
+    if (this.boss.isStaring && this.player.moving && this.grace <= 0) {
       this.die('caught');
       return;
     }

@@ -29,6 +29,12 @@ interface Config {
     laneTime: number;
     reviveGrace: number;
     startShields: number;
+    /**
+     * Đảo chiều vuốt. Để `true` thì vuốt phải là lách sang trái — có làm game
+     * khó hơn thật, nhưng người chơi sẽ đọc đó là lỗi chứ không phải thử thách,
+     * nên mặc định để `false`.
+     */
+    invertSwipe: boolean;
   };
   boss: {
     distance: number;
@@ -43,6 +49,12 @@ interface Config {
     watchLimit: number;
     watchRamp: number;
     turnTime: number;
+    /**
+     * Đầu phải xoay tới mức này mới đủ để bắt được người chơi. Luật phải khớp
+     * với thứ mắt nhìn thấy: nó chưa quay hẳn lại mà đã chết thì người chơi thấy
+     * oan, không hiểu mình sai ở đâu.
+     */
+    lethalTurn: number;
   };
   difficulty: {
     rowsPerLevel: number;
@@ -96,6 +108,7 @@ export const CFG: Config = {
     laneTime: 0.14,
     reviveGrace: 1.8,
     startShields: 0,
+    invertSwipe: false,
   },
 
   boss: {
@@ -110,6 +123,7 @@ export const CFG: Config = {
     watchLimit: 4.8,
     watchRamp: 10,
     turnTime: 0.18,
+    lethalTurn: 0.92,
   },
 
   difficulty: {

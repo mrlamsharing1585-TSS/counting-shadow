@@ -69,6 +69,16 @@ const CAM_HEIGHT = 5.4;
 const CAM_LOOK_AHEAD = 4.5;
 const CAM_LOOK_Y = 1.3;
 
+/**
+ * Đổi chỉ số làn (0,1,2) sang toạ độ x trong không gian 3D.
+ *
+ * Camera nằm phía sau và nhìn theo chiều +Z, mà nhìn theo +Z thì trục +X hiện ra
+ * ở **bên trái** màn hình chứ không phải bên phải. Nếu để `lane - 1` thì làn 2
+ * (vuốt sang phải) lại hiện ra bên trái — đúng lỗi vuốt ngược. Đảo dấu ở đây để
+ * chỉ số làn tăng dần từ trái sang phải đúng như mắt nhìn.
+ */
+const laneX = (lane: number): number => (CFG.laneCount - 1) / 2 - lane;
+
 const tmp = new Object3D();
 const tmpColor = new Color();
 const tmpVec = new Vector3();
@@ -457,7 +467,7 @@ export class Scene3D {
         }
 
         const isHole = cell.type === 'hole';
-        tmp.position.set(lane - 1, isHole ? -TILE_H / 2 - 0.9 : -TILE_H / 2, z);
+        tmp.position.set(laneX(lane), isHole ? -TILE_H / 2 - 0.9 : -TILE_H / 2, z);
         tmp.rotation.set(0, 0, 0);
         tmp.scale.set(1, 1, 1);
         tmp.updateMatrix();
@@ -485,7 +495,7 @@ export class Scene3D {
       if (!row) continue;
       for (let lane = 0; lane < CFG.laneCount; lane++) {
         const cell = row.cells[lane];
-        const x = lane - 1;
+        const x = laneX(lane);
         if (cell.type === 'rock' && rockN < MAX_OBSTACLES) {
           const s = 0.78 + ((cell.seed >> 2) & 7) / 20;
           tmp.position.set(x, 0.3 * s, z);
@@ -536,7 +546,7 @@ export class Scene3D {
         if (idx >= MAX_ITEMS) continue;
         const slot = pool[idx];
         slot.group.visible = true;
-        slot.group.position.set(lane - 1, 0.72 + Math.sin(game.t * 2.6 + z) * 0.12, z);
+        slot.group.position.set(laneX(lane), 0.72 + Math.sin(game.t * 2.6 + z) * 0.12, z);
         if (item === 'clock') slot.spin.rotation.z = Math.sin(game.t * 2.2 + z) * 0.22;
         else slot.spin.rotation.y = game.t * 1.8;
         if (item === 'clock') ci++;
@@ -581,7 +591,7 @@ export class Scene3D {
     const rig = this.player;
     const fall = game.deathCause === 'hole' ? game.fallT : 0;
 
-    rig.root.position.set(p.renderLane - 1, -fall * 2.4, p.z);
+    rig.root.position.set(laneX(p.renderLane), -fall * 2.4, p.z);
     rig.root.scale.setScalar(PLAYER_SCALE * (1 - fall * 0.4));
     rig.root.visible = game.phase !== 'menu';
 
@@ -593,8 +603,9 @@ export class Scene3D {
     rig.armR.rotation.x = swing * 0.8;
     rig.body.rotation.x = motion * 0.13;
     rig.body.position.y = Math.abs(Math.sin(p.stride)) * 0.06 * motion;
-    // Nghiêng người theo hướng đang đổi làn.
-    rig.root.rotation.z = (p.lane - p.renderLane) * 0.5;
+    // Nghiêng người theo hướng đang đổi làn. Dấu bám theo laneX: chỉ số làn tăng
+    // thì x giảm, nên phải đảo lại mới nghiêng đúng chiều đang lách.
+    rig.root.rotation.z = (p.renderLane - p.lane) * 0.5;
 
     const blink = game.grace > 0 && Math.sin(game.t * 25) < -0.2;
     rig.root.visible = rig.root.visible && !blink && fall < 0.99;
